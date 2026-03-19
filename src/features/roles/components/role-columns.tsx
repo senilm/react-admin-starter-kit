@@ -1,35 +1,26 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DataTableHeader } from '@/components/data-table/data-table-header';
 import { DataTableRowActions } from '@/components/data-table/data-table-row-actions';
+import { ActiveStatusBadge } from '@/components/shared/active-status-badge';
 import { StatusBadge } from '@/components/shared/status-badge';
+import { getSelectColumn } from '@/components/data-table/data-table-select-column';
 import { formatDateTime } from '@/lib/format';
 import type { Role } from '@/types';
 
 type RoleColumnActions = {
   onEdit: (role: Role) => void;
   onDelete: (role: Role) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 };
 
-export const getRoleColumns = ({ onEdit, onDelete }: RoleColumnActions): ColumnDef<Role>[] => [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-  },
+export const getRoleColumns = ({
+  onEdit,
+  onDelete,
+  canEdit = true,
+  canDelete = true,
+}: RoleColumnActions): ColumnDef<Role>[] => [
+  ...(canDelete ? [getSelectColumn<Role>()] : []),
   {
     accessorKey: 'name',
     header: ({ column }) => <DataTableHeader column={column} title="Name" />,
@@ -63,33 +54,19 @@ export const getRoleColumns = ({ onEdit, onDelete }: RoleColumnActions): ColumnD
     enableSorting: false,
   },
   {
-    accessorKey: 'requiresTwoFactor',
-    header: '2FA Required',
-    meta: { label: '2FA Required' },
-    cell: ({ row }) => {
-      const requires = row.getValue('requiresTwoFactor') as boolean;
-      return (
-        <StatusBadge
-          status={requires ? 'Yes' : 'No'}
-          variant={requires ? 'info' : 'default'}
-        />
-      );
-    },
+    accessorKey: 'userCount',
+    header: 'Users',
+    meta: { label: 'Users' },
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{row.getValue('userCount') as number}</span>
+    ),
     enableSorting: false,
   },
   {
     accessorKey: 'isActive',
     header: 'Status',
     meta: { label: 'Status' },
-    cell: ({ row }) => {
-      const isActive = row.getValue('isActive') as boolean;
-      return (
-        <StatusBadge
-          status={isActive ? 'Active' : 'Inactive'}
-          variant={isActive ? 'success' : 'destructive'}
-        />
-      );
-    },
+    cell: ({ row }) => <ActiveStatusBadge isActive={row.getValue('isActive')} />,
     enableSorting: false,
   },
   {
@@ -123,8 +100,8 @@ export const getRoleColumns = ({ onEdit, onDelete }: RoleColumnActions): ColumnD
       return (
         <div className="flex justify-end">
           <DataTableRowActions
-            onEdit={role.isSystem ? undefined : () => onEdit(role)}
-            onDelete={role.isSystem ? undefined : () => onDelete(role)}
+            onEdit={canEdit ? () => onEdit(role) : undefined}
+            onDelete={canDelete ? () => onDelete(role) : undefined}
           />
         </div>
       );

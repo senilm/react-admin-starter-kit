@@ -36,6 +36,7 @@ export type AuditLog = {
 export type ListAuditsQuery = PaginationQuery & {
   module?: AuditModule;
   action?: AuditAction;
+  recordId?: string;
   fromDate?: string;
   toDate?: string;
 };

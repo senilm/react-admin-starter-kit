@@ -8,17 +8,21 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { PermissionGate } from '@/components/shared/permission-gate';
 import { Button } from '@/components/ui/button';
 import { useUsers } from '../hooks/use-users';
-import { useDeleteUser, useUpdateUser } from '../hooks/use-user-mutations';
+import { useDeleteUser, useUpdateUser, useBulkDeleteUsers, useResendInvite } from '../hooks/use-user-mutations';
 import { getUserColumns } from '../components/user-columns';
 import { UserTableToolbar } from '../components/user-table-toolbar';
+import { UserStatsOverview } from '../components/user-stats-overview';
 import { useDialogStore, DIALOG_KEY } from '@/stores/dialog-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { usePermissions } from '@/hooks/use-permissions';
 import { UserEditDialog } from '../components/user-edit-dialog';
 import { usePagination } from '@/hooks/use-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSorting } from '@/hooks/use-sorting';
 import { exportToCSV, exportToXLSX } from '@/lib/export';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatFullName } from '@/lib/format';
+import { userService } from '@/services/user.service';
+import { toast } from 'sonner';
 import type { User } from '@/types';
 
 export const UsersPage = () => {
@@ -28,14 +32,22 @@ export const UsersPage = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const { sorting, setSorting, sortBy, sortOrder } = useSorting();
+  const [isExporting, setIsExporting] = useState(false);
 
   const { openDialog } = useDialogStore();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const { hasPermission } = usePermissions();
+  const canEdit = hasPermission('users.update');
+  const canDelete = hasPermission('users.delete');
+
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { mutate: removeUser, isPending: isDeleting } = useDeleteUser();
   const { mutate: updateUser } = useUpdateUser();
+  const { mutate: bulkDelete, isPending: isBulkDeleting } = useBulkDeleteUsers();
+  const { mutate: resendInvite } = useResendInvite();
 
   const queryParams = useMemo(() => {
     const mappedSortBy = sortBy === 'name' ? 'firstName' : sortBy;
@@ -44,15 +56,16 @@ export const UsersPage = () => {
       limit,
       ...(debouncedSearch && { s: debouncedSearch }),
       ...(filters.roleId && { roleId: filters.roleId }),
+      ...(filters.isActive && { isActive: filters.isActive }),
       ...(mappedSortBy && { sortBy: mappedSortBy, sortOrder }),
     };
   }, [page, limit, debouncedSearch, filters, sortBy, sortOrder]);
 
   const { data, isLoading, isFetching, refetch } = useUsers(queryParams);
 
-  const handleToggle2FA = useCallback(
-    (user: User, enabled: boolean) => {
-      updateUser({ id: user._id, data: { twoFactorEnabled: enabled } });
+  const handleToggleActive = useCallback(
+    (user: User, isActive: boolean) => {
+      updateUser({ id: user._id, data: { isActive } });
     },
     [updateUser],
   );
@@ -62,10 +75,13 @@ export const UsersPage = () => {
       getUserColumns({
         onEdit: setEditUser,
         onDelete: setDeleteUser,
-        onToggle2FA: handleToggle2FA,
+        onToggleActive: handleToggleActive,
+        onResendInvite: (user) => resendInvite(user._id),
         currentUserId,
+        canEdit,
+        canDelete,
       }),
-    [setEditUser, setDeleteUser, handleToggle2FA, currentUserId],
+    [handleToggleActive, resendInvite, currentUserId, canEdit, canDelete],
   );
 
   const handleFilterChange = useCallback(
@@ -93,20 +109,38 @@ export const UsersPage = () => {
   const handleBulkDelete = () => {
     const selectedIds = Object.keys(rowSelection);
     if (selectedIds.length === 0) return;
-    Promise.all(selectedIds.map((id) => removeUser(id)))
-      .then(() => setRowSelection({}))
-      .catch(() => {});
+    bulkDelete(selectedIds, {
+      onSuccess: () => {
+        setRowSelection({});
+        setBulkDeleteOpen(false);
+      },
+    });
   };
 
-  const prepareExportData = () => {
-    if (!data?.items) return [];
-    return data.items.map((user) => ({
-      Name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
-      Email: user.email,
-      Role: user.roleId?.name ?? 'No role',
-      '2FA': user.isTwoFactorEnabled ? 'Enabled' : 'Disabled',
-      Created: formatDateTime(user.createdAt),
-    }));
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true);
+    try {
+      const response = await userService.exportAll(queryParams);
+      const exportData = response.items.map((user) => ({
+        Name: formatFullName(user.firstName, user.lastName),
+        Email: user.email,
+        Role: user.roleId?.name ?? 'No role',
+        Status: user.isActive ? 'Active' : 'Inactive',
+        'Last Login': user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never',
+        Created: formatDateTime(user.createdAt),
+      }));
+
+      if (format === 'csv') exportToCSV(exportData, 'users');
+      else exportToXLSX(exportData, 'users');
+
+      if (response.truncated) {
+        toast.info(`Export limited to ${response.items.length.toLocaleString()} records`);
+      }
+    } catch {
+      toast.error('Failed to export users');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -119,6 +153,8 @@ export const UsersPage = () => {
           </Button>
         </PermissionGate>
       </PageHeader>
+
+      <UserStatsOverview />
 
       <DataTable
         columns={columns}
@@ -150,19 +186,22 @@ export const UsersPage = () => {
             onFilterChange={handleFilterChange}
             onFilterClear={handleFilterClear}
             activeFilterCount={activeFilterCount}
-            onExportCSV={() => exportToCSV(prepareExportData(), 'users')}
-            onExportXLSX={() => exportToXLSX(prepareExportData(), 'users')}
+            onExportCSV={() => handleExport('csv')}
+            onExportXLSX={() => handleExport('xlsx')}
+            isExporting={isExporting}
             onRefresh={refetch}
             isRefreshing={isFetching}
             columnCustomizer={columnCustomizer}
           />
         )}
         bulkActions={
-          <DataTableBulkActions
-            selectedCount={Object.keys(rowSelection).length}
-            onDelete={handleBulkDelete}
-            onClear={() => setRowSelection({})}
-          />
+          canDelete ? (
+            <DataTableBulkActions
+              selectedCount={Object.keys(rowSelection).length}
+              onDelete={() => setBulkDeleteOpen(true)}
+              onClear={() => setRowSelection({})}
+            />
+          ) : undefined
         }
       />
 
@@ -171,11 +210,21 @@ export const UsersPage = () => {
         open={!!deleteUser}
         onOpenChange={(open) => !open && setDeleteUser(null)}
         title="Delete User"
-        description={`Are you sure you want to delete "${deleteUser?.firstName ?? ''} ${deleteUser?.lastName ?? ''}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${formatFullName(deleteUser?.firstName, deleteUser?.lastName)}"? This action cannot be undone.`}
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Delete Users"
+        description={`Are you sure you want to delete ${Object.keys(rowSelection).length} selected user(s)? This action cannot be undone.`}
+        confirmLabel="Delete All"
+        variant="destructive"
+        onConfirm={handleBulkDelete}
+        isLoading={isBulkDeleting}
       />
     </div>
   );

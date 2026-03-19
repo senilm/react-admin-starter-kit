@@ -8,16 +8,21 @@ import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { PermissionGate } from '@/components/shared/permission-gate';
 import { Button } from '@/components/ui/button';
 import { useRoles } from '../hooks/use-roles';
-import { useDeleteRole } from '../hooks/use-role-mutations';
+import { useDeleteRole, useBulkDeleteRoles } from '../hooks/use-role-mutations';
 import { getRoleColumns } from '../components/role-columns';
 import { RoleTableToolbar } from '../components/role-table-toolbar';
+import { RoleCard } from '../components/role-card';
 import { useDialogStore, DIALOG_KEY } from '@/stores/dialog-store';
+import { usePermissions } from '@/hooks/use-permissions';
 import { RoleEditDialog } from '../components/role-edit-dialog';
 import { usePagination } from '@/hooks/use-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSorting } from '@/hooks/use-sorting';
 import { exportToCSV, exportToXLSX } from '@/lib/export';
 import { formatDateTime } from '@/lib/format';
+import { roleService } from '@/services/role.service';
+import { ViewMode } from '@/types/data-table.types';
+import { toast } from 'sonner';
 import type { Role } from '@/types';
 
 export const RolesPage = () => {
@@ -27,12 +32,20 @@ export const RolesPage = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const { sorting, setSorting, sortBy, sortOrder } = useSorting();
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.LIST);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { openDialog } = useDialogStore();
+  const { hasPermission } = usePermissions();
+  const canEdit = hasPermission('roles.update');
+  const canDelete = hasPermission('roles.delete');
+
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [deleteRole, setDeleteRole] = useState<Role | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { mutate: removeRole, isPending: isDeleting } = useDeleteRole();
+  const { mutate: bulkDelete, isPending: isBulkDeleting } = useBulkDeleteRoles();
 
   const queryParams = useMemo(
     () => ({
@@ -40,6 +53,7 @@ export const RolesPage = () => {
       limit,
       ...(debouncedSearch && { s: debouncedSearch }),
       ...(filters.isActive && { isActive: filters.isActive }),
+      ...(filters.isSystem && { isSystem: filters.isSystem }),
       ...(sortBy && { sortBy, sortOrder }),
     }),
     [page, limit, debouncedSearch, filters, sortBy, sortOrder],
@@ -52,8 +66,10 @@ export const RolesPage = () => {
       getRoleColumns({
         onEdit: setEditRole,
         onDelete: setDeleteRole,
+        canEdit,
+        canDelete,
       }),
-    [setEditRole, setDeleteRole],
+    [canEdit, canDelete],
   );
 
   const handleFilterChange = useCallback(
@@ -78,29 +94,46 @@ export const RolesPage = () => {
     });
   };
 
-  const handleBulkDelete = useCallback(() => {
+  const handleBulkDelete = () => {
     const selectedIds = Object.keys(rowSelection);
     if (selectedIds.length === 0 || !data?.items) return;
     const systemIds = new Set(data.items.filter((r) => r.isSystem).map((r) => r._id));
     const idsToDelete = selectedIds.filter((id) => !systemIds.has(id));
     if (idsToDelete.length === 0) return;
-    Promise.all(idsToDelete.map((id) => removeRole(id)))
-      .then(() => setRowSelection({}))
-      .catch(() => {});
-  }, [rowSelection, data, removeRole]);
+    bulkDelete(idsToDelete, {
+      onSuccess: () => {
+        setRowSelection({});
+        setBulkDeleteOpen(false);
+      },
+    });
+  };
 
-  const prepareExportData = useCallback(() => {
-    if (!data?.items) return [];
-    return data.items.map((role) => ({
-      Name: role.name,
-      Description: role.description || '',
-      Permissions: role.permissions.length,
-      '2FA Required': role.requiresTwoFactor ? 'Yes' : 'No',
-      Status: role.isActive ? 'Active' : 'Inactive',
-      Type: role.isSystem ? 'System' : 'Custom',
-      Created: formatDateTime(role.createdAt),
-    }));
-  }, [data]);
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true);
+    try {
+      const { items, truncated } = await roleService.exportAll(queryParams);
+      const exportData = items.map((role) => ({
+        Name: role.name,
+        Description: role.description || '',
+        Permissions: role.permissions.length,
+        Users: role.userCount,
+        Status: role.isActive ? 'Active' : 'Inactive',
+        Type: role.isSystem ? 'System' : 'Custom',
+        Created: formatDateTime(role.createdAt),
+      }));
+
+      if (format === 'csv') exportToCSV(exportData, 'roles');
+      else exportToXLSX(exportData, 'roles');
+
+      if (truncated) {
+        toast.info(`Export limited to ${items.length.toLocaleString()} records`);
+      }
+    } catch {
+      toast.error('Failed to export roles');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div>
@@ -118,6 +151,14 @@ export const RolesPage = () => {
         data={data?.items ?? []}
         getRowId={(row) => row._id}
         isLoading={isLoading}
+        viewMode={viewMode}
+        renderCard={(role) => (
+          <RoleCard
+            role={role}
+            onEdit={canEdit && !role.isSystem ? setEditRole : undefined}
+            onDelete={canDelete && !role.isSystem ? setDeleteRole : undefined}
+          />
+        )}
         pagination={
           data
             ? { page: data.page, limit: data.limit, total: data.total, totalPages: data.totalPages }
@@ -143,19 +184,24 @@ export const RolesPage = () => {
             onFilterChange={handleFilterChange}
             onFilterClear={handleFilterClear}
             activeFilterCount={activeFilterCount}
-            onExportCSV={() => exportToCSV(prepareExportData(), 'roles')}
-            onExportXLSX={() => exportToXLSX(prepareExportData(), 'roles')}
+            onExportCSV={() => handleExport('csv')}
+            onExportXLSX={() => handleExport('xlsx')}
+            isExporting={isExporting}
             onRefresh={refetch}
             isRefreshing={isFetching}
             columnCustomizer={columnCustomizer}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         )}
         bulkActions={
-          <DataTableBulkActions
-            selectedCount={Object.keys(rowSelection).length}
-            onDelete={handleBulkDelete}
-            onClear={() => setRowSelection({})}
-          />
+          canDelete ? (
+            <DataTableBulkActions
+              selectedCount={Object.keys(rowSelection).length}
+              onDelete={() => setBulkDeleteOpen(true)}
+              onClear={() => setRowSelection({})}
+            />
+          ) : undefined
         }
       />
 
@@ -173,6 +219,16 @@ export const RolesPage = () => {
         variant="destructive"
         onConfirm={handleDelete}
         isLoading={isDeleting}
+      />
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Delete Roles"
+        description={`Are you sure you want to delete ${Object.keys(rowSelection).length} selected role(s)? System roles will be skipped. This action cannot be undone.`}
+        confirmLabel="Delete All"
+        variant="destructive"
+        onConfirm={handleBulkDelete}
+        isLoading={isBulkDeleting}
       />
     </div>
   );

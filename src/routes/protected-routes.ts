@@ -2,15 +2,6 @@ import { lazy } from 'react';
 
 export const onboardingRoutes = [
   {
-    id: 'onboarding-2fa',
-    path: '/onboarding/2fa-setup',
-    element: lazy(() =>
-      import('@/features/auth/pages/onboarding-2fa-page').then((m) => ({
-        default: m.Onboarding2faPage,
-      })),
-    ),
-  },
-  {
     id: 'onboarding-password',
     path: '/onboarding/change-password',
     element: lazy(() =>

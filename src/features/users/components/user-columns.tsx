@@ -1,49 +1,42 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { formatDistanceToNow } from 'date-fns';
+import { Mail } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DataTableHeader } from '@/components/data-table/data-table-header';
 import { DataTableRowActions } from '@/components/data-table/data-table-row-actions';
-import { formatDateTime } from '@/lib/format';
+import { ActiveStatusBadge } from '@/components/shared/active-status-badge';
+import { getSelectColumn } from '@/components/data-table/data-table-select-column';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDateTime, formatFullName } from '@/lib/format';
 import type { User } from '@/types';
 
 type UserColumnActions = {
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
-  onToggle2FA: (user: User, enabled: boolean) => void;
+  onToggleActive: (user: User, isActive: boolean) => void;
+  onResendInvite?: (user: User) => void;
   currentUserId?: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
 };
 
 export const getUserColumns = ({
   onEdit,
   onDelete,
-  onToggle2FA,
+  onToggleActive,
+  onResendInvite,
   currentUserId,
+  canEdit = true,
+  canDelete = true,
 }: UserColumnActions): ColumnDef<User>[] => [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-  },
+  ...(canDelete ? [getSelectColumn<User>()] : []),
   {
     id: 'name',
-    accessorFn: (row) => `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim(),
+    accessorFn: (row) => formatFullName(row.firstName, row.lastName),
     header: ({ column }) => <DataTableHeader column={column} title="Name" />,
     meta: { label: 'Name' },
     cell: ({ row }) => {
-      const name = `${row.original.firstName ?? ''} ${row.original.lastName ?? ''}`.trim();
+      const name = formatFullName(row.original.firstName, row.original.lastName);
       return <span className="max-w-50 truncate font-medium">{name || '—'}</span>;
     },
   },
@@ -68,18 +61,49 @@ export const getUserColumns = ({
     enableSorting: false,
   },
   {
-    id: 'twoFactor',
-    accessorFn: (row) => row.isTwoFactorEnabled,
-    header: '2FA',
-    meta: { label: '2FA' },
+    accessorKey: 'isActive',
+    header: 'Status',
+    meta: { label: 'Status' },
     enableSorting: false,
-    cell: ({ row }) => (
-      <Switch
-        size="sm"
-        checked={row.original.isTwoFactorEnabled}
-        onCheckedChange={(checked) => onToggle2FA(row.original, checked)}
-      />
-    ),
+    cell: ({ row }) => {
+      const user = row.original;
+      const isSelf = user._id === currentUserId;
+      const isSystem = user.roleId?.name === 'Super Admin';
+
+      if (isSelf || isSystem || !canEdit) {
+        return <ActiveStatusBadge isActive={user.isActive} />;
+      }
+
+      return (
+        <Switch
+          size="sm"
+          checked={user.isActive}
+          onCheckedChange={(checked) => onToggleActive(user, checked)}
+        />
+      );
+    },
+  },
+  {
+    accessorKey: 'lastLoginAt',
+    header: 'Last Login',
+    meta: { label: 'Last Login' },
+    enableSorting: false,
+    cell: ({ row }) => {
+      const lastLogin = row.getValue('lastLoginAt') as string | null;
+      if (!lastLogin) {
+        return <span className="text-muted-foreground">Never</span>;
+      }
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-muted-foreground cursor-default">
+              {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{formatDateTime(lastLogin)}</TooltipContent>
+        </Tooltip>
+      );
+    },
   },
   {
     accessorKey: 'createdAt',
@@ -94,13 +118,29 @@ export const getUserColumns = ({
   {
     id: 'actions',
     cell: ({ row }) => {
-      const isSelf = row.original._id === currentUserId;
+      const user = row.original;
+      const isSelf = user._id === currentUserId;
       if (isSelf) return null;
+
+      const canResend = onResendInvite && user.mustChangePassword && !user.lastLoginAt;
+
       return (
         <div className="flex justify-end">
           <DataTableRowActions
-            onEdit={isSelf ? undefined : () => onEdit(row.original)}
-            onDelete={isSelf ? undefined : () => onDelete(row.original)}
+            onEdit={canEdit ? () => onEdit(user) : undefined}
+            onDelete={canDelete ? () => onDelete(user) : undefined}
+            extraItems={
+              canResend ? (
+                <button
+                  type="button"
+                  className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden hover:bg-accent hover:text-accent-foreground w-full"
+                  onClick={() => onResendInvite(user)}
+                >
+                  <Mail className="h-4 w-4" />
+                  Resend Invite
+                </button>
+              ) : undefined
+            }
           />
         </div>
       );

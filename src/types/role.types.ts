@@ -5,9 +5,9 @@ export type Role = {
   name: string;
   description: string | null;
   permissions: string[];
-  requiresTwoFactor: boolean;
   isSystem: boolean;
   isActive: boolean;
+  userCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -16,7 +16,6 @@ export type CreateRoleRequest = {
   name: string;
   description?: string;
   permissions: string[];
-  requiresTwoFactor?: boolean;
 };
 
 export type UpdateRoleRequest = {
@@ -24,11 +23,11 @@ export type UpdateRoleRequest = {
   description?: string;
   permissions?: string[];
   isActive?: boolean;
-  requiresTwoFactor?: boolean;
 };
 
 export type ListRolesQuery = PaginationQuery & {
   isActive?: string;
+  isSystem?: string;
 };
 
 export type Permission = {

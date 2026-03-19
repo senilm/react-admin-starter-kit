@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PERMISSION_MODULES, PERMISSION_ACTIONS } from '@/lib/constants';
-import { capitalize } from '@/lib/format';
+import { humanize } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import type { Permission } from '@/types';
 
 type PermissionMatrixProps = {
@@ -61,7 +62,7 @@ export const PermissionMatrix = ({
                   key={action}
                   className="px-4 py-3 text-center font-medium text-muted-foreground"
                 >
-                  {capitalize(action)}
+                  {humanize(action)}
                 </th>
               ))}
               {onToggleAll && (
@@ -87,9 +88,9 @@ export const PermissionMatrix = ({
               return (
                 <tr
                   key={module}
-                  className={`border-b last:border-b-0 ${index % 2 === 1 ? 'bg-muted/30' : ''}`}
+                  className={cn('border-b last:border-b-0', index % 2 === 1 && 'bg-muted/30')}
                 >
-                  <td className="px-4 py-3 font-medium">{capitalize(module)}</td>
+                  <td className="px-4 py-3 font-medium">{humanize(module)}</td>
                   {PERMISSION_ACTIONS.map((action) => {
                     const permission = permissionMap.get(`${module}.${action}`);
                     const isSelected = permission
@@ -99,11 +100,13 @@ export const PermissionMatrix = ({
                     return (
                       <td key={action} className="px-4 py-3 text-center">
                         {permission ? (
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => onToggle(permission.name)}
-                            aria-label={`${capitalize(module)} ${action}`}
-                          />
+                          <div className="flex justify-center">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => onToggle(permission.name)}
+                              aria-label={`${humanize(module)} ${action}`}
+                            />
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">&mdash;</span>
                         )}

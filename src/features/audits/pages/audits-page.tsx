@@ -9,7 +9,9 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSorting } from '@/hooks/use-sorting';
 import { exportToCSV, exportToXLSX } from '@/lib/export';
-import { formatDateTime, capitalize } from '@/lib/format';
+import { formatDateTime, humanize } from '@/lib/format';
+import { auditService } from '@/services/audit.service';
+import { toast } from 'sonner';
 import type { AuditModule, AuditAction } from '@/types';
 
 export const AuditsPage = () => {
@@ -19,6 +21,7 @@ export const AuditsPage = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
   const { sorting, setSorting, sortBy, sortOrder } = useSorting();
+  const [isExporting, setIsExporting] = useState(false);
 
   const queryParams = useMemo(
     () => ({
@@ -61,18 +64,32 @@ export const AuditsPage = () => {
     return count;
   }, [filters]);
 
-  const prepareExportData = () => {
-    if (!data?.items) return [];
-    return data.items.map((audit) => ({
-      'User Name': audit.userName,
-      'Email': audit.userEmail,
-      'Role': audit.userRole,
-      'Module': capitalize(audit.module),
-      'Action': capitalize(audit.action),
-      'Record ID': audit.recordId,
-      'IP Address': audit.ipAddress,
-      'Created': formatDateTime(audit.createdAt),
-    }));
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true);
+    try {
+      const { items, truncated } = await auditService.exportAll(queryParams);
+      const exportData = items.map((audit) => ({
+        'User Name': audit.userName,
+        'Email': audit.userEmail,
+        'Role': audit.userRole,
+        'Module': humanize(audit.module),
+        'Action': humanize(audit.action),
+        'Record ID': audit.recordId,
+        'IP Address': audit.ipAddress,
+        'Created': formatDateTime(audit.createdAt),
+      }));
+
+      if (format === 'csv') exportToCSV(exportData, 'audit-logs');
+      else exportToXLSX(exportData, 'audit-logs');
+
+      if (truncated) {
+        toast.info(`Export limited to ${items.length.toLocaleString()} records`);
+      }
+    } catch {
+      toast.error('Failed to export audit logs');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -107,8 +124,9 @@ export const AuditsPage = () => {
             onFilterChange={handleFilterChange}
             onFilterClear={handleFilterClear}
             activeFilterCount={activeFilterCount}
-            onExportCSV={() => exportToCSV(prepareExportData(), 'audit-logs')}
-            onExportXLSX={() => exportToXLSX(prepareExportData(), 'audit-logs')}
+            onExportCSV={() => handleExport('csv')}
+            onExportXLSX={() => handleExport('xlsx')}
+            isExporting={isExporting}
             onRefresh={refetch}
             isRefreshing={isFetching}
             columnCustomizer={columnCustomizer}

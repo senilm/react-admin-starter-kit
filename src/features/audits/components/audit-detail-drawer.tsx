@@ -7,16 +7,11 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { Loader2 } from 'lucide-react';
-import { formatDateTime, capitalize } from '@/lib/format';
+import { LoadingSpinner } from '@/components/shared/loading-spinner';
+import { formatDateTime, humanize } from '@/lib/format';
+import { AUDIT_ACTION_VARIANT_MAP } from '@/lib/audit-utils';
 import { useAudit } from '../hooks/use-audit';
 import type { AuditAction } from '@/types';
-
-const actionVariantMap: Record<AuditAction, { variant: 'info' | 'warning' | 'destructive'; label: string }> = {
-  created: { variant: 'info', label: 'Created' },
-  updated: { variant: 'warning', label: 'Updated' },
-  deleted: { variant: 'destructive', label: 'Deleted' },
-};
 
 type AuditDetailDrawerProps = {
   open: boolean;
@@ -44,7 +39,7 @@ export const AuditDetailDrawer = ({ open, onOpenChange, auditId }: AuditDetailDr
       <SheetContent className="overflow-y-auto sm:max-w-md">
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center py-20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <LoadingSpinner />
           </div>
         ) : !audit ? (
           <SheetHeader>
@@ -64,9 +59,9 @@ type AuditDetailContentProps = {
 };
 
 const AuditDetailContent = ({ audit }: AuditDetailContentProps) => {
-  const { variant, label } = actionVariantMap[audit.action] ?? {
+  const { variant, label } = AUDIT_ACTION_VARIANT_MAP[audit.action] ?? {
     variant: 'default' as const,
-    label: capitalize(audit.action),
+    label: humanize(audit.action),
   };
 
   const hasPrevious = audit.previousValues !== null;
@@ -78,7 +73,7 @@ const AuditDetailContent = ({ audit }: AuditDetailContentProps) => {
       <SheetHeader>
         <SheetTitle>Audit Log Details</SheetTitle>
         <SheetDescription>
-          {capitalize(audit.module)} record {audit.action} by {audit.userName}
+          {humanize(audit.module)} record {audit.action} by {audit.userName}
         </SheetDescription>
       </SheetHeader>
 
@@ -109,7 +104,7 @@ const AuditDetailContent = ({ audit }: AuditDetailContentProps) => {
           <div className="rounded-lg border divide-y">
             <div className="px-4">
               <DetailRow label="Module">
-                <StatusBadge status={capitalize(audit.module)} variant="default" />
+                <StatusBadge status={humanize(audit.module)} variant="default" />
               </DetailRow>
             </div>
             <div className="px-4">
@@ -136,41 +131,24 @@ const AuditDetailContent = ({ audit }: AuditDetailContentProps) => {
             <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
               Changed Values
             </h4>
-            {hasBoth ? (
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
+              {hasPrevious && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Previous</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Previous Values</p>
                   <pre className="overflow-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed">
                     {JSON.stringify(audit.previousValues, null, 2)}
                   </pre>
                 </div>
+              )}
+              {hasNew && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">New</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">New Values</p>
                   <pre className="overflow-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed">
                     {JSON.stringify(audit.newValues, null, 2)}
                   </pre>
                 </div>
-              </div>
-            ) : (
-              <div>
-                {hasPrevious && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Previous Values</p>
-                    <pre className="overflow-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed">
-                      {JSON.stringify(audit.previousValues, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                {hasNew && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">New Values</p>
-                    <pre className="overflow-auto rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed">
-                      {JSON.stringify(audit.newValues, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </section>
         )}
       </div>

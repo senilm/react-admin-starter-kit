@@ -1,6 +1,6 @@
 import { api } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/lib/api-endpoints';
-import type { Role, CreateRoleRequest, UpdateRoleRequest, PaginatedData, ListRolesQuery } from '@/types';
+import type { Role, CreateRoleRequest, UpdateRoleRequest, PaginatedData, ListRolesQuery, ExportResponse } from '@/types';
 
 export const roleService = {
   getAll: (params?: ListRolesQuery) =>
@@ -13,4 +13,10 @@ export const roleService = {
   update: (id: string, data: UpdateRoleRequest) => api.patch<unknown, Role>(`${API_ENDPOINTS.ROLES}/${id}`, data),
 
   delete: (id: string) => api.delete<unknown, void>(`${API_ENDPOINTS.ROLES}/${id}`),
+
+  bulkDelete: (ids: string[]) =>
+    api.post<unknown, { count: number }>(`${API_ENDPOINTS.ROLES}/bulk-delete`, { ids }),
+
+  exportAll: (params?: ListRolesQuery) =>
+    api.get<unknown, ExportResponse<Role>>(`${API_ENDPOINTS.ROLES}/export`, { params }),
 };

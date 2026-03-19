@@ -4,7 +4,6 @@ import { createRoleSchema, type CreateRoleFormValues } from '@/validations/role.
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
   Form,
   FormControl,
@@ -12,7 +11,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 
 import { PermissionMatrix } from './permission-matrix';
@@ -57,7 +55,6 @@ export const useRoleForm = (defaultValues?: Partial<CreateRoleFormValues>) => {
       name: '',
       description: '',
       permissions: [],
-      requiresTwoFactor: false,
       ...defaultValues,
     },
   });
@@ -128,23 +125,6 @@ export const RoleFormFields = ({
               <Textarea placeholder="Enter description (optional)" rows={3} {...field} />
             </FormControl>
             <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name="requiresTwoFactor"
-        render={({ field }) => (
-          <FormItem className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <FormLabel>Require Two-Factor Authentication</FormLabel>
-              <FormDescription>
-                Users with this role must enable 2FA
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
           </FormItem>
         )}
       />

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useRoleForm, RoleFormFields } from './role-form';
 import { useCreateRole } from '../hooks/use-role-mutations';
 import { usePermissionsList } from '../hooks/use-permissions-list';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import type { CreateRoleFormValues } from '@/validations/role.schema';
 
 type RoleCreateDialogProps = {
@@ -33,12 +33,17 @@ export const RoleCreateDialog = ({ open, onOpenChange }: RoleCreateDialogProps) 
     });
   };
 
+  const handleClose = () => {
+    form.reset();
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <FullScreenDialogContent>
         {isLoadingPermissions ? (
           <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <LoadingSpinner />
           </div>
         ) : (
           <Form {...form}>

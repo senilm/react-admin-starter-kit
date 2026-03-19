@@ -1,14 +1,9 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTableHeader } from '@/components/data-table/data-table-header';
 import { StatusBadge } from '@/components/shared/status-badge';
-import { formatDateTime, capitalize } from '@/lib/format';
+import { formatDateTime, humanize } from '@/lib/format';
+import { AUDIT_ACTION_VARIANT_MAP } from '@/lib/audit-utils';
 import type { AuditLog, AuditAction } from '@/types';
-
-const actionVariantMap: Record<AuditAction, { variant: 'info' | 'warning' | 'destructive'; label: string }> = {
-  created: { variant: 'info', label: 'Created' },
-  updated: { variant: 'warning', label: 'Updated' },
-  deleted: { variant: 'destructive', label: 'Deleted' },
-};
 
 export const auditColumns: ColumnDef<AuditLog>[] = [
   {
@@ -35,7 +30,7 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     header: 'Module',
     meta: { label: 'Module' },
     cell: ({ row }) => (
-      <StatusBadge status={capitalize(row.getValue('module'))} variant="default" />
+      <StatusBadge status={humanize(row.getValue('module'))} variant="default" />
     ),
     enableSorting: false,
   },
@@ -45,7 +40,7 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     meta: { label: 'Action' },
     cell: ({ row }) => {
       const action = row.getValue('action') as AuditAction;
-      const { variant, label } = actionVariantMap[action] ?? { variant: 'default' as const, label: capitalize(action) };
+      const { variant, label } = AUDIT_ACTION_VARIANT_MAP[action] ?? { variant: 'default' as const, label: humanize(action) };
       return <StatusBadge status={label} variant={variant} />;
     },
     enableSorting: false,

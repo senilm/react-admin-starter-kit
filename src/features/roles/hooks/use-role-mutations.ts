@@ -48,3 +48,18 @@ export const useDeleteRole = () => {
     },
   });
 };
+
+export const useBulkDeleteRoles = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => roleService.bulkDelete(ids),
+    onSuccess: ({ count }) => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success(`${count} role${count !== 1 ? 's' : ''} deleted successfully`);
+    },
+    onError: (error: { message: string }) => {
+      toast.error(error.message || 'Failed to delete roles');
+    },
+  });
+};

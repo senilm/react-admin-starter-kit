@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
     TWO_FACTOR_AUTHENTICATE: '/auth/2fa/authenticate',
     TWO_FACTOR_DISABLE: '/auth/2fa/disable',
   },
+  DASHBOARD_STATS: '/dashboard/stats',
   USERS: '/users',
   ROLES: '/roles',
   TODOS: '/todos',

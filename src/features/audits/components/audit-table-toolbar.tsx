@@ -3,7 +3,7 @@ import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { DataTableFilter, type FilterField } from '@/components/data-table/data-table-filter';
 import { DataTableExport } from '@/components/data-table/data-table-export';
 import { AUDIT_MODULE, AUDIT_ACTION } from '@/types';
-import { capitalize } from '@/lib/format';
+import { humanize } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 
 type AuditTableToolbarProps = {
@@ -13,8 +13,9 @@ type AuditTableToolbarProps = {
   onFilterChange: (key: string, value: string) => void;
   onFilterClear: () => void;
   activeFilterCount: number;
-  onExportCSV: () => void;
-  onExportXLSX: () => void;
+  onExportCSV: () => void | Promise<void>;
+  onExportXLSX: () => void | Promise<void>;
+  isExporting?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   columnCustomizer?: React.ReactNode;
@@ -29,6 +30,7 @@ export const AuditTableToolbar = ({
   activeFilterCount,
   onExportCSV,
   onExportXLSX,
+  isExporting,
   onRefresh,
   isRefreshing,
   columnCustomizer,
@@ -45,7 +47,7 @@ export const AuditTableToolbar = ({
         key: 'module',
         label: 'Module',
         options: allowedModules.map((value) => ({
-          label: capitalize(value),
+          label: humanize(value),
           value,
         })),
       },
@@ -53,7 +55,7 @@ export const AuditTableToolbar = ({
         key: 'action',
         label: 'Action',
         options: Object.values(AUDIT_ACTION).map((value) => ({
-          label: capitalize(value),
+          label: humanize(value),
           value,
         })),
       },
@@ -83,7 +85,11 @@ export const AuditTableToolbar = ({
         onClear={onFilterClear}
         activeCount={activeFilterCount}
       />
-      <DataTableExport onExportCSV={onExportCSV} onExportXLSX={onExportXLSX} />
+      <DataTableExport
+        onExportCSV={onExportCSV}
+        onExportXLSX={onExportXLSX}
+        isExporting={isExporting}
+      />
     </DataTableToolbar>
   );
 };

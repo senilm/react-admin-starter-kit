@@ -5,9 +5,11 @@ export type User = {
   firstName: string | null;
   lastName: string | null;
   email: string;
+  isActive: boolean;
   isTwoFactorEnabled: boolean;
   mustChangePassword: boolean;
   mustSetupTwoFactor: boolean;
+  lastLoginAt: string | null;
   roleId: {
     _id: string;
     name: string;
@@ -17,19 +19,26 @@ export type User = {
   updatedAt: string;
 };
 
+export type UserStats = {
+  activeUsers: { value: number };
+  inactiveUsers: { value: number };
+  adminCount: { value: number };
+  staleUsers: { value: number };
+};
+
 export type CreateUserRequest = {
   firstName: string;
   lastName: string;
   email: string;
   roleId: string;
-  requireTwoFactorSetup?: boolean;
 };
 
 export type UpdateUserRequest = {
   roleId?: string;
-  twoFactorEnabled?: boolean;
+  isActive?: boolean;
 };
 
 export type ListUsersQuery = PaginationQuery & {
   roleId?: string;
+  isActive?: string;
 };

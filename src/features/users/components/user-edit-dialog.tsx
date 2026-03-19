@@ -1,5 +1,4 @@
 import { useForm } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { updateUserSchema, type UpdateUserFormValues } from '@/validations/user.schema';
 import {
@@ -17,17 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-
+import { RoleCombobox } from './role-combobox';
 import { useUpdateUser } from '../hooks/use-user-mutations';
-import { roleService } from '@/services/role.service';
-import { QUERY_KEYS } from '@/lib/constants';
 import type { User } from '@/types';
 
 type UserEditDialogProps = {
@@ -38,13 +28,6 @@ type UserEditDialogProps = {
 
 export const UserEditDialog = ({ open, onOpenChange, user }: UserEditDialogProps) => {
   const { mutate: updateUser, isPending } = useUpdateUser();
-
-  const { data: rolesData } = useQuery({
-    queryKey: QUERY_KEYS.roles({}),
-    queryFn: () => roleService.getAll({ limit: 100 }),
-  });
-
-  const roles = rolesData?.items ?? [];
 
   const form = useForm<UpdateUserFormValues>({
     resolver: zodResolver(updateUserSchema),
@@ -58,12 +41,17 @@ export const UserEditDialog = ({ open, onOpenChange, user }: UserEditDialogProps
   const handleSubmit = (data: UpdateUserFormValues) => {
     updateUser(
       { id: user._id, data },
-      { onSuccess: () => onOpenChange(false) },
+      { onSuccess: () => handleClose() },
     );
   };
 
+  const handleClose = () => {
+    form.reset();
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
@@ -76,20 +64,9 @@ export const UserEditDialog = ({ open, onOpenChange, user }: UserEditDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role._id} value={role._id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <RoleCombobox value={field.value ?? ''} onChange={field.onChange} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

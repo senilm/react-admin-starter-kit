@@ -48,3 +48,30 @@ export const useDeleteUser = () => {
     },
   });
 };
+
+export const useBulkDeleteUsers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => userService.bulkDelete(ids),
+    onSuccess: ({ count }) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(`${count} user${count !== 1 ? 's' : ''} deleted successfully`);
+    },
+    onError: (error: { message: string }) => {
+      toast.error(error.message || 'Failed to delete users');
+    },
+  });
+};
+
+export const useResendInvite = () => {
+  return useMutation({
+    mutationFn: (id: string) => userService.resendInvite(id),
+    onSuccess: () => {
+      toast.success('Invite resent successfully');
+    },
+    onError: (error: { message: string }) => {
+      toast.error(error.message || 'Failed to resend invite');
+    },
+  });
+};

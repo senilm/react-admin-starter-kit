@@ -12,7 +12,9 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => login(data),
     onSuccess: (result) => {
-      if (result.requiresTwoFactor) {
+      if (result.requiresTwoFactorSetup) {
+        void navigate(ROUTES.ONBOARDING_2FA);
+      } else if (result.requiresTwoFactor) {
         void navigate(ROUTES.TWO_FACTOR_VERIFY);
       } else {
         toast.success('Welcome back!');

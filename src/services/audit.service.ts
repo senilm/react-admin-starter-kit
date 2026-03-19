@@ -1,6 +1,6 @@
 import { api } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/lib/api-endpoints';
-import type { AuditLog, ListAuditsQuery, PaginatedData } from '@/types';
+import type { AuditLog, ListAuditsQuery, PaginatedData, ExportResponse } from '@/types';
 
 export const auditService = {
   getAll: (params?: ListAuditsQuery) =>
@@ -8,4 +8,7 @@ export const auditService = {
 
   getById: (id: string) =>
     api.get<unknown, AuditLog>(`${API_ENDPOINTS.AUDITS}/${id}`),
+
+  exportAll: (params?: ListAuditsQuery) =>
+    api.get<unknown, ExportResponse<AuditLog>>(`${API_ENDPOINTS.AUDITS}/export`, { params }),
 };

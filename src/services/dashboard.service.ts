@@ -1,7 +1,5 @@
-import { todoService } from './todo.service';
-import { userService } from './user.service';
-import { roleService } from './role.service';
-import { auditService } from './audit.service';
+import { api } from '@/lib/axios';
+import { API_ENDPOINTS } from '@/lib/api-endpoints';
 
 export type DashboardStats = {
   totalTodos: number;
@@ -11,19 +9,6 @@ export type DashboardStats = {
 };
 
 export const dashboardService = {
-  getStats: async (): Promise<DashboardStats> => {
-    const [todos, users, roles, audits] = await Promise.all([
-      todoService.getAll({ page: 1, limit: 1 }),
-      userService.getAll({ page: 1, limit: 1 }),
-      roleService.getAll({ page: 1, limit: 1 }),
-      auditService.getAll({ page: 1, limit: 1 }),
-    ]);
-
-    return {
-      totalTodos: todos.total,
-      totalUsers: users.total,
-      totalRoles: roles.total,
-      totalAudits: audits.total,
-    };
-  },
+  getStats: () =>
+    api.get<unknown, DashboardStats>(API_ENDPOINTS.DASHBOARD_STATS),
 };

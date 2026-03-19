@@ -11,7 +11,7 @@ type AuthState = {
 };
 
 type AuthActions = {
-  login: (data: LoginRequest) => Promise<{ requiresTwoFactor: boolean }>;
+  login: (data: LoginRequest) => Promise<{ requiresTwoFactor: boolean; requiresTwoFactorSetup: boolean }>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   verifyTwoFactor: (token: string) => Promise<void>;
@@ -29,14 +29,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (data) => {
         const response = await authService.login(data);
 
+        if (response.requiresTwoFactorSetup) {
+          return { requiresTwoFactor: false, requiresTwoFactorSetup: true };
+        }
+
         if (response.requiresTwoFactor) {
-          return { requiresTwoFactor: true };
+          return { requiresTwoFactor: true, requiresTwoFactorSetup: false };
         }
 
         const user = await authService.getProfile();
         set({ user, isAuthenticated: true });
 
-        return { requiresTwoFactor: false };
+        return { requiresTwoFactor: false, requiresTwoFactorSetup: false };
       },
 
       register: async (data) => {

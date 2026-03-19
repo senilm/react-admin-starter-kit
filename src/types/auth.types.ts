@@ -6,6 +6,7 @@ export type LoginRequest = {
 export type LoginResponse = {
   message?: string;
   requiresTwoFactor?: boolean;
+  requiresTwoFactorSetup?: boolean;
 };
 
 export type RegisterRequest = {

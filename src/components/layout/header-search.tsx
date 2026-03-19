@@ -125,7 +125,7 @@ export const HeaderSearch = () => {
           value={query}
           onValueChange={setQuery}
         />
-        <CommandList>
+        <CommandList className="min-h-75">
           {hasQuery ? (
             isSearching ? (
               <div className="p-2 space-y-2">
