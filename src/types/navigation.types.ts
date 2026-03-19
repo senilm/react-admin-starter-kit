@@ -4,7 +4,7 @@ export type NavItem = {
   label: string;
   path: string;
   icon: LucideIcon;
-  permission?: string;
+  permission?: string | string[];
 };
 
 export type NavGroup = {

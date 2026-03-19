@@ -30,7 +30,7 @@ export const DataTableColumnCustomizer = <TData,>({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
-          <Settings2 className="mr-2 h-4 w-4" />
+          <Settings2 />
           Columns
         </Button>
       </DropdownMenuTrigger>

@@ -1,6 +1,7 @@
 import { format, formatDistanceToNow } from 'date-fns';
 
-export const formatDate = (date: string | Date, pattern = 'dd MMM, yyyy') => {
+export const formatDate = (date: string | Date | null | undefined, pattern = 'dd MMM, yyyy') => {
+  if (!date) return '\u2014';
   return format(new Date(date), pattern);
 };
 
@@ -12,8 +13,35 @@ export const formatRelativeTime = (date: string | Date) => {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 };
 
+export const formatCurrency = (
+  value?: number | null,
+  options: { currency?: string; compact?: boolean } = {},
+): string => {
+  if (value === null || value === undefined) return '\u2014';
+  const { currency = 'USD', compact = false } = options;
+  if (compact && value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (compact && value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
+
 export const capitalize = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+export const formatLabel = (str: string) => str.replace(/_/g, ' ');
+
+export const formatFullName = (firstName?: string | null, lastName?: string | null): string =>
+  [firstName, lastName].filter(Boolean).join(' ');
+
+export const humanize = (str: string) => {
+  return str
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 /**
@@ -36,6 +64,13 @@ export const formatDateToISO = (date: Date): string => {
 };
 
 /**
+ * Extracts YYYY-MM-DD from an ISO date string for use in <input type="date">.
+ * Returns empty string if input is nullish.
+ */
+export const toDateInputValue = (isoString?: string | null): string =>
+  isoString?.split('T')[0] ?? '';
+
+/**
  * Locale-aware short date display.
  * Adapts to the user's browser locale automatically:
  *   en-US → "Feb 23, 2026"
@@ -48,9 +83,3 @@ export const formatDateShort = (date: Date): string =>
     month: 'short',
     day: 'numeric',
   }).format(date);
-
-export const humanize = (str: string) => {
-  return str
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-};

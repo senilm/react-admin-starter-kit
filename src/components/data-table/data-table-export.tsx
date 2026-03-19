@@ -8,22 +8,31 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 type DataTableExportProps = {
-  onExportCSV: () => void;
-  onExportXLSX: () => void;
+  onExportCSV: () => void | Promise<void>;
+  onExportXLSX: () => void | Promise<void>;
+  isExporting?: boolean;
 };
 
-export const DataTableExport = ({ onExportCSV, onExportXLSX }: DataTableExportProps) => {
+export const DataTableExport = ({
+  onExportCSV,
+  onExportXLSX,
+  isExporting,
+}: DataTableExportProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Download className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="sm" loading={isExporting}>
+          <Download />
           Export
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onExportCSV}>In .CSV</DropdownMenuItem>
-        <DropdownMenuItem onClick={onExportXLSX}>In .XLSX</DropdownMenuItem>
+        <DropdownMenuItem onClick={onExportCSV} disabled={isExporting}>
+          In .CSV
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onExportXLSX} disabled={isExporting}>
+          In .XLSX
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

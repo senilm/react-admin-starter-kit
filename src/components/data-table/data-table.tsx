@@ -21,7 +21,9 @@ import {
 import { DataTablePagination } from './data-table-pagination';
 import { DataTableColumnCustomizer } from './data-table-column-customizer';
 import { EmptyState } from '@/components/shared/empty-state';
-import { TableSkeleton } from '@/components/shared/loading-skeleton';
+import { TableSkeleton, CardSkeleton } from '@/components/shared/loading-skeleton';
+import { LoadingTransition } from '@/components/shared/loading-transition';
+import { ViewMode } from '@/types/data-table.types';
 import type { ReactNode } from 'react';
 
 type PaginationData = {
@@ -51,6 +53,8 @@ type DataTableProps<TData, TValue> = {
   hasActiveFilters?: boolean;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
+  viewMode?: ViewMode;
+  renderCard?: (item: TData) => ReactNode;
 };
 
 export const DataTable = <TData, TValue>({
@@ -73,6 +77,8 @@ export const DataTable = <TData, TValue>({
   hasActiveFilters,
   sorting: controlledSorting,
   onSortingChange,
+  viewMode,
+  renderCard,
 }: DataTableProps<TData, TValue>) => {
   const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [internalRowSelection, setInternalRowSelection] = useState<RowSelectionState>({});
@@ -112,75 +118,106 @@ export const DataTable = <TData, TValue>({
   });
 
   const selectedCount = Object.keys(rowSelection).length;
+  const isGridMode = viewMode === ViewMode.GRID && !!renderCard;
 
-  const columnCustomizer = <DataTableColumnCustomizer table={table} />;
+  const columnCustomizer = isGridMode ? undefined : <DataTableColumnCustomizer table={table} />;
+
+  const emptyContent = data.length === 0 ? (
+    hasActiveFilters ? (
+      <EmptyState
+        title="No results found"
+        description="Try adjusting your search or filters."
+      />
+    ) : (
+      <EmptyState title={emptyTitle} description={emptyDescription} />
+    )
+  ) : null;
 
   return (
     <div>
       {typeof toolbar === 'function' ? toolbar(columnCustomizer) : toolbar}
 
-      {selectedCount > 0 && bulkActions}
+      {!isGridMode && selectedCount > 0 && bulkActions}
 
-      <div className="rounded-md border">
-        {isLoading ? (
-          <div className="p-4">
-            <TableSkeleton />
-          </div>
-        ) : data.length === 0 ? (
-          hasActiveFilters ? (
-            <EmptyState
-              title="No results found"
-              description="Try adjusting your search or filters."
-            />
-          ) : (
-            <EmptyState title={emptyTitle} description={emptyDescription} />
-          )
-        ) : (
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
+      {isGridMode ? (
+        <LoadingTransition
+          isLoading={!!isLoading}
+          loader={
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <CardSkeleton key={i} />
               ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className={onRowClick ? 'cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none' : undefined}
-                  tabIndex={onRowClick ? 0 : undefined}
-                  role={onRowClick ? 'button' : undefined}
-                  onClick={onRowClick ? (e) => {
-                    const target = e.target as HTMLElement;
-                    if (target.closest('button, a, input, [role="menuitem"], [role="checkbox"], [data-radix-collection-item]')) return;
-                    onRowClick(row.original);
-                  } : undefined}
-                  onKeyDown={onRowClick ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onRowClick(row.original);
-                    }
-                  } : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+            </div>
+          }
+        >
+          {emptyContent ?? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {data.map((item, index) => (
+                <div key={(getRowId ? getRowId(item) : undefined) ?? index}>
+                  {renderCard(item)}
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+            </div>
+          )}
+        </LoadingTransition>
+      ) : (
+        <div className="rounded-md border">
+          <LoadingTransition
+            isLoading={!!isLoading}
+            loader={
+              <div className="p-4">
+                <TableSkeleton />
+              </div>
+            }
+          >
+            {emptyContent ?? (
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      className={onRowClick ? 'cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none' : undefined}
+                      tabIndex={onRowClick ? 0 : undefined}
+                      role={onRowClick ? 'button' : undefined}
+                      onClick={onRowClick ? (e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button, a, input, [role="menuitem"], [role="checkbox"], [data-radix-collection-item]')) return;
+                        onRowClick(row.original);
+                      } : undefined}
+                      onKeyDown={onRowClick ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(row.original);
+                        }
+                      } : undefined}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </LoadingTransition>
+        </div>
+      )}
 
       {pagination && onPageChange && onLimitChange && (
         <DataTablePagination
@@ -190,7 +227,7 @@ export const DataTable = <TData, TValue>({
           limit={pagination.limit}
           onPageChange={onPageChange}
           onLimitChange={onLimitChange}
-          selectedCount={selectedCount}
+          selectedCount={isGridMode ? 0 : selectedCount}
         />
       )}
     </div>

@@ -37,11 +37,11 @@ export const OnboardingPasswordPage = () => {
 
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: '', newPassword: '' },
+    defaultValues: { currentPassword: '', newPassword: '', confirmNewPassword: '' },
   });
 
-  const onSubmit = (data: ChangePasswordFormValues) => {
-    changePassword(data);
+  const onSubmit = ({ currentPassword, newPassword }: ChangePasswordFormValues) => {
+    changePassword({ currentPassword, newPassword });
   };
 
   return (
@@ -79,6 +79,19 @@ export const OnboardingPasswordPage = () => {
                   <FormLabel>New password</FormLabel>
                   <FormControl>
                     <PasswordInput placeholder="Min. 8 characters" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmNewPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm new password</FormLabel>
+                  <FormControl>
+                    <PasswordInput placeholder="Confirm new password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

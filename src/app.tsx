@@ -9,8 +9,8 @@ export const App = () => {
       <Providers>
         <RouterProvider router={router} />
       </Providers>
-      {import.meta.env.VITE_ENVIRONMENT === 'dev' && (
-        <Badge className="z-30 fixed bottom-16 right-4">Dev</Badge>
+      {import.meta.env.VITE_ENVIRONMENT !== 'production' && (
+        <Badge className="z-30 fixed bottom-16 right-4">{import.meta.env.VITE_ENVIRONMENT}</Badge>
       )}
     </>
   );

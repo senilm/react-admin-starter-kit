@@ -20,11 +20,11 @@ export const ChangePasswordForm = () => {
 
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: { currentPassword: '', newPassword: '' },
+    defaultValues: { currentPassword: '', newPassword: '', confirmNewPassword: '' },
   });
 
-  const onSubmit = (data: ChangePasswordFormValues) => {
-    changePassword(data, {
+  const onSubmit = ({ currentPassword, newPassword }: ChangePasswordFormValues) => {
+    changePassword({ currentPassword, newPassword }, {
       onSuccess: () => {
         form.reset();
       },
@@ -66,6 +66,19 @@ export const ChangePasswordForm = () => {
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
                     <PasswordInput placeholder="Enter new password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmNewPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <PasswordInput placeholder="Confirm new password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

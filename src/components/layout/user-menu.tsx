@@ -1,5 +1,6 @@
-import {  LogOut, ChevronsUpDown } from 'lucide-react';
+import { LogOut, ChevronsUpDown } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
+import { formatFullName } from '@/lib/format';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -34,7 +35,7 @@ export const UserMenu = () => {
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium">
-              {user.firstName ?? ''} {user.lastName ?? ''}
+              {formatFullName(user.firstName, user.lastName)}
             </span>
             <span className="truncate text-xs text-muted-foreground">
               {user.email}
@@ -58,7 +59,7 @@ export const UserMenu = () => {
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">
-                {user.firstName ?? ''} {user.lastName ?? ''}
+                {formatFullName(user.firstName, user.lastName)}
               </span>
               <span className="truncate text-xs text-muted-foreground">
                 {user.email}
@@ -71,7 +72,7 @@ export const UserMenu = () => {
           className="text-destructive focus:text-destructive"
           onClick={() => void logout()}
         >
-          <LogOut />
+          <LogOut className="text-destructive" />
           Logout
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -99,12 +99,12 @@ function FormLabel({
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn("data-[error=true]:text-destructive gap-x-0", className)}
       htmlFor={formItemId}
       {...props}
     >
       {children}
-      {required && <span className="text-primary">*</span>}
+      {required && <span className="text-destructive">*</span>}
     </Label>
   )
 }

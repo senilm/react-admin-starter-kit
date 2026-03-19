@@ -3,6 +3,7 @@ import { z } from 'zod';
 const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must be under 128 characters')
   .regex(/[a-z]/, 'Must contain a lowercase letter')
   .regex(/[A-Z]/, 'Must contain an uppercase letter')
   .regex(/\d/, 'Must contain a number')
@@ -14,8 +15,8 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string().min(1, 'First name is required').max(100, 'First name must be under 100 characters'),
+  lastName: z.string().min(1, 'Last name is required').max(100, 'Last name must be under 100 characters'),
   email: z.string().email('Invalid email address'),
   password: passwordSchema,
 });
@@ -27,7 +28,7 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     password: passwordSchema,
-    confirmPassword: z.string(),
+    confirmPassword: z.string().min(1, 'Confirm password is required'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -35,14 +36,24 @@ export const resetPasswordSchema = z
   });
 
 export const updateProfileSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string().min(1, 'First name is required').max(100, 'First name must be under 100 characters'),
+  lastName: z.string().min(1, 'Last name is required').max(100, 'Last name must be under 100 characters'),
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: passwordSchema,
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: passwordSchema,
+    confirmNewPassword: z.string().min(1, 'Confirm new password is required'),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmNewPassword'],
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    message: 'New password must be different from current password',
+    path: ['newPassword'],
+  });
 
 export const changeEmailSchema = z.object({
   newEmail: z.string().email('Invalid email address'),

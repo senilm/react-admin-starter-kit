@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type LoadingSpinnerProps = {
@@ -12,10 +12,10 @@ const sizeClasses = {
   lg: 'h-12 w-12',
 };
 
-export const LoadingSpinner = ({ className, size = 'md' }: LoadingSpinnerProps) => {
+export const LoadingSpinner = ({ className, size = 'sm' }: LoadingSpinnerProps) => {
   return (
     <div className={cn('flex items-center justify-center py-8', className)}>
-      <Loader2 className={cn('animate-spin text-primary', sizeClasses[size])} />
+      <Loader className={cn('animate-spin text-primary', sizeClasses[size])} />
     </div>
   );
 };

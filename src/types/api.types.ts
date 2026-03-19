@@ -19,6 +19,12 @@ export type PaginatedData<T> = {
   totalPages: number;
 };
 
+export type ExportResponse<T> = {
+  items: T[];
+  total: number;
+  truncated: boolean;
+};
+
 export const SORT_ORDER = {
   ASC: 'asc',
   DESC: 'desc',

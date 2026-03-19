@@ -192,7 +192,7 @@ export const DateRangeField = memo(
               size="sm"
               className="h-8 w-fit min-w-35 justify-start font-normal"
             >
-              <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0" />
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{label}</span>
             </Button>
           </PopoverTrigger>

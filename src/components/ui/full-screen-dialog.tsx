@@ -39,14 +39,14 @@ const FullScreenDialogHeader = ({
 }: React.ComponentProps<"div"> & { showCloseButton?: boolean }) => (
   <div
     className={cn(
-      "flex items-center justify-between border-b px-6 py-4 shrink-0",
+      "flex items-start justify-between border-b px-6 py-4 shrink-0",
       className
     )}
     {...props}
   >
-    <div className="flex flex-col gap-1">{children}</div>
+    <div className="flex-1 min-w-0 flex flex-col gap-1">{children}</div>
     {showCloseButton && (
-      <DialogPrimitive.Close className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-ring/50 focus-visible:ring-[3px] focus:outline-hidden">
+      <DialogPrimitive.Close className="mt-0.5 shrink-0 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-ring/50 focus-visible:ring-[3px] focus:outline-hidden cursor-pointer">
         <XIcon className="size-5" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

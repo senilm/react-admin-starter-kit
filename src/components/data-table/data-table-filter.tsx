@@ -45,7 +45,7 @@ export const DataTableFilter = ({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="relative">
-          <Filter className="mr-2 h-4 w-4" />
+          <Filter />
           Filters
           {activeCount > 0 && (
             <span className="ml-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">

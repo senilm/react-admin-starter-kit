@@ -12,9 +12,10 @@ type DataTableRowActionsProps = {
   onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  extraItems?: React.ReactNode;
 };
 
-export const DataTableRowActions = ({ onView, onEdit, onDelete }: DataTableRowActionsProps) => {
+export const DataTableRowActions = ({ onView, onEdit, onDelete, extraItems }: DataTableRowActionsProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -40,6 +41,7 @@ export const DataTableRowActions = ({ onView, onEdit, onDelete }: DataTableRowAc
             Edit
           </DropdownMenuItem>
         )}
+        {extraItems}
         {onDelete && (
           <>
             <DropdownMenuSeparator />

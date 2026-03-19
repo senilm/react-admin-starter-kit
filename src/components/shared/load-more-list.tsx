@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from './loading-spinner';
 
 type LoadMoreListProps<T> = {
   items: T[];
@@ -33,9 +33,7 @@ export const LoadMoreList = <T,>({
     <div className={cn('flex flex-col gap-3', className)}>
       {items.map((item, index) => renderItem(item, index))}
       {isLoading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        </div>
+        <LoadingSpinner/>
       )}
       {hasMore && !isLoading && (
         <Button
